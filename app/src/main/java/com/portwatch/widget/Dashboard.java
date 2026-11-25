@@ -1,47 +1,98 @@
 package com.portwatch.widget;
+import android.content.Context;
 import android.graphics.*;
 import android.text.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 final class Dashboard {
- static final int BG=0xff141218, PRIMARY=0xff4f378b, ON_PRIMARY=0xffeaddff, ACCENT=0xffd0bcff, SECONDARY=0xff4a4458, ON_SECONDARY=0xffe8def8, GREEN=0xff214f39, ON_GREEN=0xffc5f7d9, HIGH=0xff2b2930, SURFACE=0xff211f26, TEXT=0xffe6e1e5, MUTED=0xffcac4d0, DIM=0xffaaa4b0;
- final Canvas c; final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG); final TextPaint tp=new TextPaint(Paint.ANTI_ALIAS_FLAG);
- Dashboard(Canvas c){this.c=c;}
- void rect(float x,float y,float w,float h,float r,int color){if(w<=0||h<=0)return;p.setColor(color);c.drawRoundRect(x,y,x+w,y+h,r,r,p);}
- void text(String s,float x,float y,float size,int color,boolean bold,float max,boolean right){p.setColor(color);p.setTextSize(size);p.setTypeface(Typeface.create("sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));tp.set(p);String v=TextUtils.ellipsize(s==null?"":s,tp,Math.max(1,max),TextUtils.TruncateAt.END).toString();p.setTextAlign(right?Paint.Align.RIGHT:Paint.Align.LEFT);c.drawText(v,x,y,p);p.setTextAlign(Paint.Align.LEFT);}
- void lines(String s,float x,float y,float w,float size,int color,boolean bold,int count){tp.setColor(color);tp.setTextSize(size);tp.setTypeface(Typeface.create("sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));StaticLayout l=StaticLayout.Builder.obtain(s,0,s.length(),tp,Math.max(1,(int)w)).setIncludePad(false).setMaxLines(count).setEllipsize(TextUtils.TruncateAt.END).setLineSpacing(1,1).build();c.save();c.translate(x,y);l.draw(c);c.restore();}
- static Bitmap bitmap(Tracker.Data d,int dpW,int dpH,float density){float scale=Math.min(density,Math.min(1200f/dpW,1200f/dpH));int w=Math.max(1,Math.round(dpW*scale)),h=Math.max(1,Math.round(dpH*scale));Bitmap b=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(w/(float)dpW,h/(float)dpH);new Dashboard(c).draw(d,dpW,dpH);return b;}
- void draw(Tracker.Data d,float width,float height){
-  if(width<=0||height<=0)return;
-  float W=340,H=height*W/width,scale=width/W;
-  if(H<155){W=width*155/height;H=155;scale=height/H;}
-  c.save();c.scale(scale,scale);rect(0,0,W,H,28,BG);
-  float m=10,inner=W-2*m;
-  String time=d.updated==0?"—":Instant.ofEpochMilli(d.updated).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"));
-  text("PORTWATCH VI",m+3,22,12,ACCENT,true,inner-100,false);
-  rect(W-m-75,6,75,23,12,GREEN);text("↻ "+time,W-m-8,21,11,ON_GREEN,true,65,true);
-  if(d.entries.isEmpty()){rect(m,34,inner,H-45,20,SURFACE);text("Нет данных",m+13,60,19,TEXT,true,inner-26,false);lines(d.error.isEmpty()?"Нажми ↻ для загрузки рейтинга":d.error,m+13,70,inner-26,13,MUTED,false,3);c.restore();return;}
-  Tracker.Entry e=d.entries.get(0);float y=34;
-  boolean tiny=H<220,compact=H<315,tall=H>=430;
-  float hero=tiny?83:compact?92:104;
-  rect(m,y,inner,hero,23,PRIMARY);
-  float pad=13,left=m+pad,right=W-m-pad;
-  text("ЛИДЕР ГОНКИ",left,y+19,10,ON_PRIMARY,true,inner-26,false);
-  float valSize=compact?29:33;
-  p.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));p.setTextSize(valSize);float vw=p.measureText(Tracker.pct(e.score));
-  text(e.name,left,y+43,20,ON_PRIMARY,true,Math.max(40,inner-26-vw-8),false);
-  text(Tracker.pct(e.score),right,y+43,valSize,ON_PRIMARY,true,inner/2,true);
-  text(Tracker.fps(e.fps)+" · "+Tracker.stage(e.score),left,y+59,11,ON_PRIMARY,false,inner-26,false);
-  float barY=y+hero-13,bw=(inner-26-9*4)/10f;
-  for(int i=0;i<10;i++){float x=left+i*(bw+4);rect(x,barY,bw,5,3,0xff8d76c0);float fill=(float)Math.max(0,Math.min(1,e.score/10-i));if(fill>0)rect(x,barY,bw*fill,5,3,ON_PRIMARY);}
-  y+=hero+7;
-  if(!tiny||H>=190){float sh=compact?45:55,half=(inner-7)/2;rect(m,y,half,sh,17,SECONDARY);rect(m+half+7,y,half,sh,17,GREEN);text(Tracker.pct(d.average),m+11,y+23,21,ON_SECONDARY,true,half-22,false);text("Среднее топ-3",m+11,y+sh-8,10,ON_SECONDARY,false,half-22,false);text(d.booted+" / "+d.entries.size(),m+half+18,y+23,21,ON_GREEN,true,half-22,false);text("Запускают EXE",m+half+18,y+sh-8,10,ON_GREEN,false,half-22,false);y+=sh+7;}
-  float footer=17,available=H-y-footer;int n=Math.min(3,d.entries.size());
-  float row=compact?19:22,rh=21+n*row+5;
-  if(!tiny&&available>=rh){rect(m,y,inner,rh,18,HIGH);text("ТОП ПРОЕКТОВ",left,y+15,10,MUTED,true,inner-26,false);for(int i=0;i<n;i++){Tracker.Entry r=d.entries.get(i);float ry=y+30+i*row;text(String.format("%02d",i+1),left,ry,11,i==0?ACCENT:DIM,true,24,false);text(r.name,left+26,ry,13,TEXT,i==0,inner-106,false);text(Tracker.pct(r.score),right,ry,13,ACCENT,true,70,true);}y+=rh+7;}
-  available=H-y-footer;
-  if(!d.title.isEmpty()&&available>=46){rect(m,y,inner,available,18,SURFACE);rect(left,y+6,Math.min(100,Math.max(44,d.category.length()*7+12)),17,8,SECONDARY);text(d.category,left+6,y+18,10,ON_SECONDARY,true,88,false);text(d.date,right,y+18,10,DIM,false,116,true);int titleLines=available>=62?2:1;lines(d.title,left,y+27,inner-26,13,TEXT,true,titleLines);if(available>=100&&!d.dek.isEmpty())lines(d.dek,left,y+62,inner-26,12,MUTED,false,Math.max(1,Math.min(tall?5:3,(int)((available-68)/14))));}
-  text(d.error.isEmpty()?"Балл трекера ≠ готовность порта":"Нет связи · показан кеш",m+3,H-5,9,d.error.isEmpty()?DIM:0xffffb4ab,false,inner-6,false);c.restore();
+ static final int SQUARE=0,COMPACT=1,LARGE=2;
+ final Canvas c; final DynamicPalette q; final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);final TextPaint tp=new TextPaint(Paint.ANTI_ALIAS_FLAG);
+ final Typeface medium=Typeface.create("sans-serif-medium",Typeface.NORMAL), regular=Typeface.create("sans-serif",Typeface.NORMAL);
+ Dashboard(Canvas c,DynamicPalette q){this.c=c;this.q=q;}
+ void rect(float x,float y,float w,float h,float r,int col){if(w<=0||h<=0)return;p.setStyle(Paint.Style.FILL);p.setColor(col);c.drawRoundRect(x,y,x+w,y+h,Math.min(r,h/2),Math.min(r,h/2),p);}
+ void circle(float x,float y,float r,int col){p.setStyle(Paint.Style.FILL);p.setColor(col);c.drawCircle(x,y,r,p);}
+ void font(float size,int color,boolean bold){p.setStyle(Paint.Style.FILL);p.setTextSize(size);p.setColor(color);p.setTypeface(bold?medium:regular);}
+ void text(String s,float x,float y,float size,int col,boolean bold,float max,int align){
+  if(max<=1)return;font(size,col,bold);tp.set(p);String v=TextUtils.ellipsize(s==null?"":s,tp,max,TextUtils.TruncateAt.END).toString();p.setTextAlign(align==1?Paint.Align.CENTER:align==2?Paint.Align.RIGHT:Paint.Align.LEFT);c.drawText(v,x,y,p);p.setTextAlign(Paint.Align.LEFT);
+ }
+ void lines(String s,float x,float y,float w,float size,int col,boolean bold,int count){
+  if(s==null||s.isEmpty()||count<1||w<1)return;tp.setColor(col);tp.setTextSize(size);tp.setTypeface(bold?medium:regular);
+  StaticLayout l=StaticLayout.Builder.obtain(s,0,s.length(),tp,Math.max(1,(int)w)).setIncludePad(false).setMaxLines(count).setEllipsize(TextUtils.TruncateAt.END).setLineSpacing(1,1).build();c.save();c.translate(x,y);l.draw(c);c.restore();
+ }
+ void flower(float x,float y,float radius,int col){
+  Path a=new Path();for(int i=0;i<=240;i++){double t=Math.PI*2*i/240-Math.PI/2;double r=radius*(.94+.06*Math.cos(12*(t+Math.PI/2)));float xx=x+(float)(r*Math.cos(t)),yy=y+(float)(r*Math.sin(t));if(i==0)a.moveTo(xx,yy);else a.lineTo(xx,yy);}a.close();p.setStyle(Paint.Style.FILL);p.setColor(col);c.drawPath(a,p);
+ }
+ void stroke(float x,float y,float r,float angle,int col,float sw){p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(sw);p.setStrokeCap(Paint.Cap.ROUND);p.setColor(col);c.drawArc(x-r,y-r,x+r,y+r,-90,angle,false,p);p.setStyle(Paint.Style.FILL);}
+ void meter(float x,float y,float r,Tracker.Entry e,boolean fps){
+  flower(x,y,r,q.primarySoft);stroke(x,y,r*.75f,360,DynamicPalette.blend(q.primarySoft,q.onPrimarySoft,.20f),r*.095f);if(e.score>0)stroke(x,y,r*.75f,(float)(e.score*3.6),q.onPrimarySoft,r*.095f);
+  String val=Tracker.pct(e.score);text(val,x,y+1,r*.45f,q.onPrimary,true,r*1.40f,1);
+  text(fps?Tracker.fps(e.fps):"БАЛЛ",x,y+r*.29f,r*.17f,q.onPrimarySoft,true,r*1.4f,1);
+ }
+ void icon(String kind,float x,float y,int col){
+  p.setColor(col);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.8f);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeJoin(Paint.Join.ROUND);
+  Path path=new Path();
+  if(kind.equals("trend")){path.moveTo(x-7,y+4);path.lineTo(x-2,y-1);path.lineTo(x+2,y+2);path.lineTo(x+7,y-5);path.moveTo(x+2,y-5);path.lineTo(x+7,y-5);path.lineTo(x+7,y);c.drawPath(path,p);}
+  else if(kind.equals("news")){c.drawRoundRect(x-7,y-7,x+7,y+7,2,2,p);c.drawLine(x-3,y-3,x+3,y-3,p);c.drawLine(x-3,y,x+3,y,p);c.drawLine(x-3,y+3,x+1,y+3,p);}
+  else if(kind.equals("refresh")){c.drawArc(x-6,y-6,x+6,y+6,-45,290,false,p);path.moveTo(x+6,y-7);path.lineTo(x+6,y-1);path.lineTo(x,y-1);c.drawPath(path,p);}
+  else {path.moveTo(x-5,y-7);path.lineTo(x+7,y);path.lineTo(x-5,y+7);path.close();c.drawPath(path,p);}
+  p.setStyle(Paint.Style.FILL);
+ }
+ String time(Tracker.Data d){return d.updated==0?"—":Instant.ofEpochMilli(d.updated).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"));}
+ void header(Tracker.Data d,float w){text("PortWatch VI",14,25,14,q.text,true,w-105,0);rect(w-80,8,70,25,13,q.raised);icon("refresh",w-67,20.5f,d.error.isEmpty()?q.onSecondary:q.error);text(time(d),w-17,24,11,q.text,true,42,2);}
+ static int mode(float w,float h){if(w<230&&h/w>=.65f)return SQUARE;return h/w<.83f?COMPACT:LARGE;}
+ static Bitmap bitmap(Context ctx,Tracker.Data d,int w,int h,float density){
+  // Cap the bitmap to stay safely within the AppWidgetService memory budget.
+  float scale=Math.min(density,Math.min(1000f/w,1000f/h));int bw=Math.max(1,Math.round(w*scale)),bh=Math.max(1,Math.round(h*scale));
+  Bitmap b=Bitmap.createBitmap(bw,bh,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(bw/(float)w,bh/(float)h);new Dashboard(c,new DynamicPalette(ctx)).draw(d,w,h,Settings.news(ctx));return b;
+ }
+ void draw(Tracker.Data d,float width,float height,boolean showNews){
+  if(width<1||height<1)return;int m=mode(width,height);float w=m==SQUARE?180:340;
+  float h=m==SQUARE?190:m==COMPACT?166:Math.max(300,Math.min(600,height*w/width));
+  float sc=Math.min(width/w,height/h);c.save();c.translate((width-w*sc)/2,(height-h*sc)/2);c.scale(sc,sc);rect(0,0,w,h,28,q.bg);
+  if(d.entries.isEmpty()){header(d,w);text("Нет данных",w/2,h/2,18,q.text,true,w-24,1);lines(d.error.isEmpty()?"Нет проектов для выбранного фильтра":d.error,14,h/2+12,w-28,11,q.muted,false,3);c.restore();return;}
+  if(m==SQUARE)square(d,w,h);else if(m==COMPACT)compact(d,w,h);else large(d,w,h,showNews);c.restore();
+ }
+ void square(Tracker.Data d,float w,float h){
+  Tracker.Entry e=d.entries.get(0);text("PortWatch VI",w/2,19,12,q.text,true,w-20,1);meter(w/2,86,57,e,true);text(e.name,w/2,155,15,q.text,true,w-18,1);icon("refresh",w/2-23,173,q.muted);text(time(d),w/2+9,177,10,q.muted,false,48,1);
+ }
+ void compact(Tracker.Data d,float w,float h){
+  header(d,w);Tracker.Entry e=d.entries.get(0);meter(76,101,58,e,false);
+  float x=145; text("Лидер гонки",x,54,11,q.muted,false,180,0);text(e.name,x,77,21,q.text,true,180,0);
+  rect(x,86,86,25,13,q.tertiary);text(Tracker.fps(e.fps),x+43,103,13,q.onTertiary,true,78,1);
+  String gpu=e.gpu.isEmpty()?"":e.gpu;
+  if(!gpu.isEmpty()){rect(x+91,86,90,25,13,q.secondary);text(gpu,x+136,103,11,q.onSecondary,true,80,1);}
+  rect(x,117,181,27,14,q.surface);text(d.booted+" / "+d.entries.size()+" · Запускают EXE",x+90.5f,135,11,q.text,true,169,1);
+ }
+ void large(Tracker.Data d,float w,float h,boolean news){
+  header(d,w);Tracker.Entry e=d.entries.get(0);float y=40,inner=w-20;
+  float hero=h>=390?124:104;rect(10,y,inner,hero,27,q.primary);
+  float radius=hero*.44f;float cx=w-10-radius-9,cy=y+hero/2;
+  text("Лидер гонки",25,y+25,12,q.onPrimarySoft,false,cx-radius-31,0);
+  text(e.name,25,y+50,22,q.onPrimary,true,cx-radius-31,0);
+  String tag=e.gpu.isEmpty()?Tracker.fps(e.fps):e.gpu+" · "+Tracker.fps(e.fps);
+  float chip=Math.min(cx-radius-30,Math.max(76,tag.length()*6.5f+14));rect(25,y+60,chip,24,12,q.primarySoft);text(tag,25+chip/2,y+76,11,q.onPrimary,true,chip-10,1);
+  meter(cx,cy,radius,e,false);
+  y+=hero+7;float half=(inner-7)/2, mh=h>=390?68:52;
+  rect(10,y,half,mh,23,q.secondary);rect(17+half,y,half,mh,23,q.tertiary);
+  if(mh>=60){icon("trend",26,y+15,q.onSecondary);icon("play",33+half,y+15,q.onTertiary);}
+  float numY=y+(mh>=60?42:25);text(Tracker.pct(d.average),23,numY,25,q.onSecondary,true,half-26,0);text(d.booted+" / "+d.entries.size(),30+half,numY,25,q.onTertiary,true,half-26,0);
+  text("Среднее топ-3",23,y+mh-10,11,q.onSecondary,false,half-26,0);text("Запускают EXE",30+half,y+mh-10,11,q.onTertiary,false,half-26,0);
+  y+=mh+7;float footer=16, avail=h-y-footer;int n=Math.min(3,d.entries.size());
+  float rowH=h>=390?27:22, rankH=22+n*rowH+6;
+  if(avail>=rankH){rect(10,y,inner,rankH,23,q.surface);text("Лидеры",23,y+17,12,q.text,true,inner-26,0);
+   for(int i=0;i<n;i++){Tracker.Entry v=d.entries.get(i);float ry=y+22+i*rowH;int accent=i==1?q.tertiary:q.primarySoft;int ink=i==1?q.onTertiary:q.onPrimary;
+    if(i==0)flower(33,ry+rowH/2,10,accent);else if(i==1)rect(24,ry+rowH/2-9,18,18,6,accent);else circle(33,ry+rowH/2,9,accent);
+    text(String.valueOf(i+1),33,ry+rowH/2+4,11,ink,true,15,1);
+    text(v.name,49,ry+10,12,q.text,true,205,0);text(Tracker.pct(v.score),w-23,ry+10,12,q.text,true,70,2);
+    rect(49,ry+15,205,4,2,q.track);rect(49,ry+15,(float)(205*v.score/100),4,2,accent);
+   }y+=rankH+7;
+  }
+  avail=h-y-footer;
+  if(news&&!d.title.isEmpty()&&avail>=43){float nh=Math.min(avail,86);rect(10,y,inner,nh,23,q.raised);circle(34,y+20,12,q.primarySoft);icon("news",34,y+20,q.onPrimary);text("Последняя новость",53,y+15,10,q.text,true,170,0);text(d.date,w-23,y+15,10,q.muted,false,94,2);
+   if(nh>=61)lines(d.title,23,y+35,inner-26,13,q.text,true,nh>=76?3:2);else text(d.title,53,y+32,11,q.text,true,inner-66,0);
+  }
+  text(d.error.isEmpty()?"Балл трекера ≠ готовность порта":"Нет связи · показан кеш",14,h-5,9,d.error.isEmpty()?q.muted:q.error,false,w-28,0);
  }
 }

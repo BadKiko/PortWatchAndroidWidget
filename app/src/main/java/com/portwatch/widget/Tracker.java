@@ -13,8 +13,21 @@ final class Tracker {
  static final String URL=SITE+"data/tracker.json";
  static SharedPreferences prefs(Context c){return c.getSharedPreferences("tracker",Context.MODE_PRIVATE);}
  static class Entry {
-  String name; double score,fps; boolean booted;
-  Entry(JSONObject e){JSONObject g=e.optJSONObject("gta");if(g==null)g=new JSONObject();name=e.optString("name","Без названия");score=score(e);fps=Math.max(0,num(g.opt("fps")));booted=unit(g.opt("loads"))==1;}
+  String name,gpu; double score,fps; boolean booted;
+  Entry(JSONObject e){JSONObject g=e.optJSONObject("gta");if(g==null)g=new JSONObject();name=e.optString("name","Без названия");score=score(e);fps=Math.max(0,num(g.opt("fps")));booted=unit(g.opt("loads"))==1;gpu=gpu(e,g);}
+ }
+ static String gpu(JSONObject e,JSONObject g){
+  StringBuilder s=new StringBuilder();
+  for(String k:new String[]{"gpu","gpus","gpuVendor","gpuVendors","vendor","vendors","hardware","platform","platforms","tags","testedOn","testGpu","gpuSupport"}){s.append(" ").append(e.optString(k)).append(" ").append(g.optString(k));}
+  String v=s.toString().toLowerCase(Locale.ROOT);
+  boolean amd=v.contains("amd")||v.contains("radeon")||v.matches(".*\\brx\\s*\\d{4}.*"),nv=v.contains("nvidia")||v.contains("geforce")||v.contains("rtx")||v.contains("gtx");
+  return amd&&nv?"AMD / NVIDIA":amd?"AMD":nv?"NVIDIA":"";
+ }
+ static Data filtered(Context c,Data d){
+  String f=Settings.gpu(c);if(f.equals("all"))return d;
+  Data x=new Data();x.title=d.title;x.dek=d.dek;x.date=d.date;x.category=d.category;x.error=d.error;x.updated=d.updated;
+  for(Entry e:d.entries)if(e.gpu.toLowerCase(Locale.ROOT).contains(f)){x.entries.add(e);if(e.booted)x.booted++;}
+  int n=Math.min(3,x.entries.size());for(int i=0;i<n;i++)x.average+=x.entries.get(i).score/n;return x;
  }
  static class Data {List<Entry> entries=new ArrayList<>();int booted;double average;String title="",dek="",category="НОВОСТИ",date="",error="";long updated;}
  static double num(Object v){if(v instanceof Boolean)return (Boolean)v?1:0;try{double n=Double.parseDouble(String.valueOf(v));return Double.isFinite(n)?n:0;}catch(Exception e){return 0;}}
