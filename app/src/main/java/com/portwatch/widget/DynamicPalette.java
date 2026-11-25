@@ -11,7 +11,7 @@ final class DynamicPalette {
   String mode=Settings.theme(c);
   dark=mode.equals("dark")||(!mode.equals("light")&&(c.getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES);
   bg=tone(c,"neutral1",dark?900:10,dark?0xff1d1a29:0xfffcf7ff);
-  surface=tone(c,"neutral2",dark?800:100,dark?0xff2c2739:0xffeee7f5);
+  surface=blend(tone(c,"neutral2",dark?800:100,dark?0xff2c2739:0xffeee7f5),tone(c,"accent1",dark?900:50,dark?0xff302438:0xfff2e9fc),.18f);
   raised=tone(c,"neutral2",dark?700:50,dark?0xff393248:0xfff5eefb);
   text=tone(c,"neutral1",dark?50:900,dark?0xffe8e0f1:0xff211a2c);
   muted=tone(c,"neutral2",dark?200:700,dark?0xffc8bdd9:0xff534a62);

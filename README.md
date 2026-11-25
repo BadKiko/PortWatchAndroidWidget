@@ -1,6 +1,11 @@
 # PortWatch VI — Android widget
 Unofficial native Android dashboard for the public PortWatch VI tracker. No game files, keys or executables included.
 
+## 3.0 Expressive
+- Four selectable visual styles: Liquid Expressive, Organic Shapes (default), Pixel Racing and Editorial Minimal.
+- Each style has dedicated square, compact and large layouts; the global style setting updates installed widgets immediately.
+- Large news content appears in Liquid and in extra-tall variants of other designs.
+
 ## 2.0 Expressive
 - System wallpaper-derived Android 12+ color resources; light/dark/system theme and older Android fallback.
 - Responsive square, compact and large Canvas widget layouts, scalloped progress dial, tonal cards, ranking bars and concise news.
