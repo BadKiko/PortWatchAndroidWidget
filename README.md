@@ -1,6 +1,10 @@
 # PortWatch VI — Android widget
 Unofficial native Android dashboard for the public PortWatch VI tracker. No game files, keys or executables included.
 
+## 3.0.1
+- Secondary dynamic tonal container for the widget background, tinted text and nested surfaces.
+- Adaptive vector launcher icon with monochrome layer for Android 13+ themed icons.
+
 ## 3.0 Expressive
 - Four selectable visual styles: Liquid Expressive, Organic Shapes (default), Pixel Racing and Editorial Minimal.
 - Each style has dedicated square, compact and large layouts; the global style setting updates installed widgets immediately.
