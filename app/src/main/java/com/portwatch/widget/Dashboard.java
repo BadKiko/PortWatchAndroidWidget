@@ -30,17 +30,25 @@ final class Dashboard {
   String val=Tracker.pct(e.score);text(val,x,y+1,r*.45f,q.onPrimary,true,r*1.40f,1);
   text(fps?Tracker.fps(e.fps):"БАЛЛ",x,y+r*.29f,r*.17f,q.onPrimarySoft,true,r*1.4f,1);
  }
+ // Material-style 24-unit glyphs drawn in an isolated paint/canvas state.
  void icon(String kind,float x,float y,int col){
-  p.setColor(col);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.8f);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeJoin(Paint.Join.ROUND);
-  Path path=new Path();
-  if(kind.equals("trend")){path.moveTo(x-7,y+4);path.lineTo(x-2,y-1);path.lineTo(x+2,y+2);path.lineTo(x+7,y-5);path.moveTo(x+2,y-5);path.lineTo(x+7,y-5);path.lineTo(x+7,y);c.drawPath(path,p);}
-  else if(kind.equals("news")){c.drawRoundRect(x-7,y-7,x+7,y+7,2,2,p);c.drawLine(x-3,y-3,x+3,y-3,p);c.drawLine(x-3,y,x+3,y,p);c.drawLine(x-3,y+3,x+1,y+3,p);}
-  else if(kind.equals("refresh")){c.drawArc(x-6,y-6,x+6,y+6,-45,290,false,p);path.moveTo(x+6,y-7);path.lineTo(x+6,y-1);path.lineTo(x,y-1);c.drawPath(path,p);}
-  else {path.moveTo(x-5,y-7);path.lineTo(x+7,y);path.lineTo(x-5,y+7);path.close();c.drawPath(path,p);}
-  p.setStyle(Paint.Style.FILL);
+  c.save();c.translate(x-9,y-9);c.scale(.75f,.75f);
+  Paint a=new Paint(Paint.ANTI_ALIAS_FLAG);a.setColor(col);a.setStyle(Paint.Style.FILL);
+  Path z=new Path();
+  switch(kind){
+   case "refresh":
+    z.moveTo(17.65f,6.35f);z.cubicTo(16.2f,4.9f,14.21f,4,12,4);z.cubicTo(7.58f,4,4,7.58f,4,12);z.cubicTo(4,16.42f,7.58f,20,12,20);z.cubicTo(15.73f,20,18.84f,17.45f,19.73f,14);z.lineTo(17.65f,14);z.cubicTo(16.83f,16.33f,14.61f,18,12,18);z.cubicTo(8.69f,18,6,15.31f,6,12);z.cubicTo(6,8.69f,8.69f,6,12,6);z.cubicTo(13.66f,6,15.14f,6.69f,16.22f,7.78f);z.lineTo(13,11);z.lineTo(20,11);z.lineTo(20,4);z.close();break;
+   case "trend":
+    z.moveTo(3.41f,18.59f);z.lineTo(10,12);z.lineTo(14,16);z.lineTo(21,9);z.lineTo(21,13);z.lineTo(23,13);z.lineTo(23,5);z.lineTo(15,5);z.lineTo(15,7);z.lineTo(19.59f,7);z.lineTo(14,12.59f);z.lineTo(10,8.59f);z.lineTo(2,17.17f);z.close();break;
+   case "news":
+    z.setFillType(Path.FillType.EVEN_ODD);z.addRoundRect(4,3,20,21,2,2,Path.Direction.CW);z.addRoundRect(6,5,18,19,1,1,Path.Direction.CW);c.drawPath(z,a);c.drawRoundRect(8,7,16,9,1,1,a);c.drawRoundRect(8,11,16,13,1,1,a);c.drawRoundRect(8,15,14,17,1,1,a);c.restore();return;
+   default:
+    z.moveTo(8,5);z.lineTo(19,12);z.lineTo(8,19);z.close();break;
+  }
+  c.drawPath(z,a);c.restore();
  }
  String time(Tracker.Data d){return d.updated==0?"—":Instant.ofEpochMilli(d.updated).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("HH:mm"));}
- void header(Tracker.Data d,float w){text("PortWatch VI",14,25,14,q.text,true,w-105,0);rect(w-80,8,70,25,13,q.raised);icon("refresh",w-67,20.5f,d.error.isEmpty()?q.onSecondary:q.error);text(time(d),w-17,24,11,q.text,true,42,2);}
+ void header(Tracker.Data d,float w){text("PortWatch VI",14,25,14,q.text,true,w-105,0);rect(w-80,8,70,25,13,q.raised);icon("refresh",w-65,20.5f,d.error.isEmpty()?q.text:q.error);text(time(d),w-17,24,11,q.text,true,42,2);}
  static int mode(float w,float h){if(w<230&&h/w>=.65f)return SQUARE;return h/w<.83f?COMPACT:LARGE;}
  static Bitmap bitmap(Context ctx,Tracker.Data d,int w,int h,float density){
   // Cap the bitmap to stay safely within the AppWidgetService memory budget.
@@ -76,8 +84,8 @@ final class Dashboard {
   meter(cx,cy,radius,e,false);
   y+=hero+7;float half=(inner-7)/2, mh=h>=390?68:52;
   rect(10,y,half,mh,23,q.secondary);rect(17+half,y,half,mh,23,q.tertiary);
-  if(mh>=60){icon("trend",26,y+15,q.onSecondary);icon("play",33+half,y+15,q.onTertiary);}
-  float numY=y+(mh>=60?42:25);text(Tracker.pct(d.average),23,numY,25,q.onSecondary,true,half-26,0);text(d.booted+" / "+d.entries.size(),30+half,numY,25,q.onTertiary,true,half-26,0);
+  if(mh>=60){float iy=y+18;float ix=10+half-20,jx=w-30;circle(ix,iy,12,DynamicPalette.blend(q.secondary,q.onSecondary,.12f));circle(jx,iy,12,DynamicPalette.blend(q.tertiary,q.onTertiary,.12f));icon("trend",ix,iy,q.onSecondary);icon("play",jx,iy,q.onTertiary);}
+  float numY=y+(mh>=60?34:25);float numW=half-(mh>=60?47:26);text(Tracker.pct(d.average),23,numY,25,q.onSecondary,true,numW,0);text(d.booted+" / "+d.entries.size(),30+half,numY,25,q.onTertiary,true,numW,0);
   text("Среднее топ-3",23,y+mh-10,11,q.onSecondary,false,half-26,0);text("Запускают EXE",30+half,y+mh-10,11,q.onTertiary,false,half-26,0);
   y+=mh+7;float footer=16, avail=h-y-footer;int n=Math.min(3,d.entries.size());
   float rowH=h>=390?27:22, rankH=22+n*rowH+6;
@@ -93,6 +101,6 @@ final class Dashboard {
   if(news&&!d.title.isEmpty()&&avail>=43){float nh=Math.min(avail,86);rect(10,y,inner,nh,23,q.raised);circle(34,y+20,12,q.primarySoft);icon("news",34,y+20,q.onPrimary);text("Последняя новость",53,y+15,10,q.text,true,170,0);text(d.date,w-23,y+15,10,q.muted,false,94,2);
    if(nh>=61)lines(d.title,23,y+35,inner-26,13,q.text,true,nh>=76?3:2);else text(d.title,53,y+32,11,q.text,true,inner-66,0);
   }
-  text(d.error.isEmpty()?"Балл трекера ≠ готовность порта":"Нет связи · показан кеш",14,h-5,9,d.error.isEmpty()?q.muted:q.error,false,w-28,0);
+  text(d.error.isEmpty()?"Балл трекера ≠ готовность порта":"Нет связи · показан кеш",14,h-7,9,d.error.isEmpty()?q.muted:q.error,false,w-28,0);
  }
 }
