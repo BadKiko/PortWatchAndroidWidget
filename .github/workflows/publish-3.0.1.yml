@@ -1,0 +1,36 @@
+name: Publish v3.0.1
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-3.0.1.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: publish-portwatch-3-0-1
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve the original successful build
+        run: |
+          gh run download 45724331303 --name PortWatch-VI-APK --dir release-apk
+          test -s release-apk/app-debug.apk
+          mv release-apk/app-debug.apk release-apk/PortWatch-VI-3.0.1.apk
+          unzip -t release-apk/PortWatch-VI-3.0.1.apk
+          cd release-apk
+          sha256sum PortWatch-VI-3.0.1.apk > SHA256SUMS.txt
+      - name: Publish GitHub release
+        run: |
+          if gh release view v3.0.1 >/dev/null 2>&1; then
+            echo "Release already exists; not overwriting it."
+          else
+            gh release create v3.0.1 release-apk/PortWatch-VI-3.0.1.apk release-apk/SHA256SUMS.txt --target "$GITHUB_SHA" --title "PortWatch VI 3.0.1 · Expressive" --notes-file docs/release-3.0.1.md --latest
+          fi
